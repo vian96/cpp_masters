@@ -1,0 +1,1 @@
+This task shows how to write `func(int* a, int base, int off) -> a[base+off]` such that as most UB as possible is avoided. Ifs are written in a way that they won't get optimised. `res.s` shows what i got on my system with -O2 on clang. You can also check it out on (godbolt)[https://godbolt.org/z/nobb3x8vG]
