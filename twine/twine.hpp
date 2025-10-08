@@ -21,21 +21,15 @@ typedef std::variant<const char *, const std::string_view, const Twine *, EmptyT
 struct TwineChild : TwineChildBase {
     template <std::convertible_to<TwineChildBase> Arg>
     // template<typename Arg>
-    TwineChild(Arg arg) : TwineChildBase(arg) {}
-
-    TwineChild(const Twine &arg) : TwineChildBase(&arg) {}
-
-    std::ostream &dump_impl(std::ostream &out) {
-        if (std::holds_alternative<const char *>(*this))
-            return out << "char*: [" << std::get<const char *>(*this) << "] ";
-        if (std::holds_alternative<const std::string_view>(*this))
-            return out << "string_view: [" << std::get<const std::string_view>(*this)
-                       << "] ";
-        if (std::holds_alternative<const Twine *>(*this))
-            return out << "Twine: [\n" << *std::get<const Twine *>(*this) << "\n] ";
-        if (std::holds_alternative<EmptyTwineChild>(*this)) return out << "Empty: []";
-        throw std::logic_error("unknown class");
+    TwineChild(Arg arg) : TwineChildBase(arg) {
+        std::cout << "templated child: " << typeid(arg).name() << ' ' << arg << "\n";
     }
+
+    TwineChild(const Twine &arg) : TwineChildBase(&arg) {
+        std::cout << "const twine & child\n";
+    }
+
+    std::ostream &dump_impl(std::ostream &out) const;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const TwineChild &rhs) {
@@ -63,7 +57,10 @@ struct Twine {
     template <typename LT = EmptyChild, typename RT = EmptyChild>
     Twine(const LT &lhs_ = EmptyChild(), const RT &rhs_ = EmptyChild())
         : lhs(lhs_), rhs(rhs_) {
-        std::cout << "constr of " << 2 << '\n';
+        std::cout << "!constr of " << 2 << '\n';
+        std::cout << "lhs_: " << typeid(lhs_).name() << ' ' << lhs_ << '\n';
+        std::cout << "rhs_: " << typeid(rhs_).name() << ' ' << rhs_ << '\n';
+        dump_impl(std::cout) << '\n';
     }
 
     template <typename First, typename... Args>
@@ -72,14 +69,26 @@ struct Twine {
         std::cout << "constr of " << sizeof...(Args) << '\n';
     }
 
-    std::ostream &dump_impl(std::ostream &out) {
-        lhs.dump_impl(out << "lhs: ");
-        return rhs.dump_impl(out << "rhs: ");
+    std::ostream &dump_impl(std::ostream &out) const {
+        lhs.dump_impl(out << "lhs: {") << '}';
+        return rhs.dump_impl(out << "rhs: {") << '}';
     }
 };
 
+inline std::ostream &TwineChild::dump_impl(std::ostream &out) const {
+    if (std::holds_alternative<const char *>(*this))
+        return out << "char*: " << (void *)std::get<const char *>(*this) << " ["
+                   << std::get<const char *>(*this) << "] ";
+    if (std::holds_alternative<const std::string_view>(*this))
+        return out << "string_view: [" << std::get<const std::string_view>(*this) << "] ";
+    if (std::holds_alternative<const Twine *>(*this))
+        return std::get<const Twine *>(*this)->dump_impl(out << "twine: [\n") << "\n] ";
+    if (std::holds_alternative<EmptyTwineChild>(*this)) return out << "empty: []";
+    throw std::logic_error("unknown class");
+}
+
 inline std::ostream &operator<<(std::ostream &out, const Twine &rhs) {
-    return out << rhs.lhs << rhs.lhs;
+    return out << rhs.lhs << rhs.rhs;
 }
 
 }  // namespace HomeworkTwine
