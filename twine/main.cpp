@@ -9,7 +9,8 @@ int main() {
     //std::cout << HomeworkTwine::Twine("ab", "oba") << '\n';
     //HomeworkTwine::Twine("ab", "oba", "x");
     //Twine(Twine("hello", ", "), "world!").dump_impl(std::cout);
-    std::cout << Twine(Twine("hello", ", "), "world!") << std::endl;
+    std::cout << Twine("hello", ", ") + Twine("world", "!") << std::endl;
+    //std::cout << Twine("hello", ", ", "world!") << std::endl;
 
     std::cout << "AB\n";
     //HomeworkTwine::Twine("hello", ", ", "world").dump_impl(std::cout);
