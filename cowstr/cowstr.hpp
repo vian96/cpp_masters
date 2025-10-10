@@ -19,7 +19,7 @@ struct BasicCowStr {
 
         // TODO: how to dealloc?
         inline static CharT *empty_buf =
-            (CharT *)(::new char[sizeof(RefCT) + sizeof(CharT)] + DATA_OFFSET);
+            (CharT *)(::new char[sizeof(RefCT) + sizeof(CharT)]() + DATA_OFFSET);
 
         CharT *buf;
 
@@ -44,7 +44,7 @@ struct BasicCowStr {
             }
             // +1 to account for \0 at the end
             auto tot_size = DATA_OFFSET + sizeof(CharT) * (n + 1);
-            buf = (CharT *)(::new char[tot_size] + DATA_OFFSET);
+            buf = (CharT *)(::new char[tot_size]() + DATA_OFFSET);
         }
 
         void free_buf() {
