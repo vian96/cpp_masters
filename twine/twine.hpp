@@ -1,7 +1,10 @@
 #pragma once
 
+#include <cstddef>
+#include <cstring>
 #include <iostream>
 #include <ostream>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <variant>
@@ -28,6 +31,25 @@ struct Twine {
         bool is_type() const {
             return std::holds_alternative<T>(*this);
         }
+
+        size_t len() const {
+            return std::visit(
+                HomeworkCommon::overloaded{
+                    [&](const char *val) -> size_t { return std::strlen(val); },
+                    [&](std::string_view val) -> size_t { return val.size(); },
+                    [&](const Twine *val) -> size_t { return val->len(); },
+                    [&](EmptyTwineChild) -> size_t { return 0; }},
+                *this);
+        }
+
+        void add_to_str(std::string &res) const {
+            return std::visit(HomeworkCommon::overloaded{
+                                  [&](const char *val) { res.append(val); },
+                                  [&](std::string_view val) { res.append(val); },
+                                  [&](const Twine *val) { val->add_to_str(res); },
+                                  [&](EmptyTwineChild) {}},
+                              *this);
+        }
     };
 
     TwineChild lhs{EmptyTwineChild()};
@@ -42,7 +64,21 @@ struct Twine {
         return rhs.dump_impl(out << "rhs: {") << '}';
     }
 
-    Twine operator+(const Twine &rhs) { return Twine(*this, rhs); }
+    Twine operator+(const Twine &rhs) const { return Twine(*this, rhs); }
+
+    size_t len() const { return lhs.len() + rhs.len(); }
+
+    std::string str() const {
+        std::string res;
+        res.reserve(len());
+        add_to_str(res);
+        return res;
+    }
+
+    void add_to_str(std::string &res) const {
+        lhs.add_to_str(res);
+        rhs.add_to_str(res);
+    }
 };
 
 inline std::ostream &Twine::TwineChild::dump_impl(std::ostream &out) const {
