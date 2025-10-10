@@ -1,6 +1,7 @@
 //#include <cassert>
 #include <iostream>
 #include <ostream>
+#include <string>
 
 #include "twine.hpp"
 
@@ -18,8 +19,8 @@ void tests() {
             Twine("\n\n\n\n") + Twine("abiba", "biboba\n"))
                .str() == "hello, world!ABIBAIBIAIB\n\n\n\nabibabiboba\n");
     assert((Twine(Twine("hello", ", "), Twine("world!"))).str() == "hello, world!");
-    // assert((Twine("ABOBA!!", Twine::EmptyTwineChild())).str() == "ABOBA!!");
-    // assert((Twine("ABOBA!!", Twine::EmptyTwineChild())).str() == "ABOBA!!");
+
+    assert(WTwine(L"Wide", L" wstr").str() == std::wstring(L"Wide wstr"));
 }
 
 int main() {

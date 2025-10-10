@@ -13,17 +13,22 @@
 
 namespace HomeworkTwine {
 
-struct Twine {
+template <class CharT, class Traits = std::char_traits<CharT>>
+struct BasicTwine {
     class EmptyTwineChild {};
 
+    using CharPtrT = const CharT *;
+    using StrViewT = std::basic_string_view<CharT, Traits>;
+    using StrT = std::basic_string<CharT, Traits>;
+
     using TwineChildBase =
-        std::variant<const char *, std::string_view, const Twine *, EmptyTwineChild>;
+        std::variant<CharPtrT, StrViewT, const BasicTwine *, EmptyTwineChild>;
 
     struct TwineChild : TwineChildBase {
         template <typename Arg>
         explicit TwineChild(const Arg &arg) : TwineChildBase(arg) {}
 
-        explicit TwineChild(const Twine &arg) : TwineChildBase(&arg) {}
+        explicit TwineChild(const BasicTwine &arg) : TwineChildBase(&arg) {}
 
         std::ostream &dump_impl(std::ostream &out) const;
 
@@ -35,18 +40,18 @@ struct Twine {
         size_t len() const {
             return std::visit(
                 HomeworkCommon::overloaded{
-                    [&](const char *val) -> size_t { return std::strlen(val); },
-                    [&](std::string_view val) -> size_t { return val.size(); },
-                    [&](const Twine *val) -> size_t { return val->len(); },
+                    [&](CharPtrT val) -> size_t { return Traits::length(val); },
+                    [&](StrViewT val) -> size_t { return val.size(); },
+                    [&](const BasicTwine *val) -> size_t { return val->len(); },
                     [&](EmptyTwineChild) -> size_t { return 0; }},
                 *this);
         }
 
-        void add_to_str(std::string &res) const {
+        void add_to_str(StrT &res) const {
             return std::visit(HomeworkCommon::overloaded{
-                                  [&](const char *val) { res.append(val); },
-                                  [&](std::string_view val) { res.append(val); },
-                                  [&](const Twine *val) { val->add_to_str(res); },
+                                  [&](CharPtrT val) { res.append(val); },
+                                  [&](StrViewT val) { res.append(val); },
+                                  [&](const BasicTwine *val) { val->add_to_str(res); },
                                   [&](EmptyTwineChild) {}},
                               *this);
         }
@@ -56,7 +61,8 @@ struct Twine {
     TwineChild rhs{EmptyTwineChild()};
 
     template <typename LT = EmptyTwineChild, typename RT = EmptyTwineChild>
-    explicit Twine(const LT &lhs_ = EmptyTwineChild(), const RT &rhs_ = EmptyTwineChild())
+    explicit BasicTwine(const LT &lhs_ = EmptyTwineChild(),
+                        const RT &rhs_ = EmptyTwineChild())
         : lhs(lhs_), rhs(rhs_) {}
 
     std::ostream &dump_impl(std::ostream &out) const {
@@ -64,51 +70,59 @@ struct Twine {
         return rhs.dump_impl(out << "rhs: {") << '}';
     }
 
-    Twine operator+(const Twine &rhs) const { return Twine(*this, rhs); }
+    BasicTwine operator+(const BasicTwine &rhs) const { return BasicTwine(*this, rhs); }
 
     size_t len() const { return lhs.len() + rhs.len(); }
 
-    std::string str() const {
-        std::string res;
+    StrT str() const {
+        StrT res;
         res.reserve(len());
         add_to_str(res);
         return res;
     }
 
-    void add_to_str(std::string &res) const {
+    void add_to_str(StrT &res) const {
         lhs.add_to_str(res);
         rhs.add_to_str(res);
     }
 };
 
-inline std::ostream &Twine::TwineChild::dump_impl(std::ostream &out) const {
+template <class CharT, class Traits>
+inline std::ostream &BasicTwine<CharT, Traits>::TwineChild::dump_impl(
+    std::ostream &out) const {
     return std::visit(
         HomeworkCommon::overloaded{
-            [&](const char *val) -> std::ostream & {
+            [&](CharPtrT val) -> std::ostream & {
                 return out << "char*: " << (void *)val << " [" << val << "] ";
             },
-            [&](std::string_view val) -> std::ostream & {
+            [&](StrViewT val) -> std::ostream & {
                 return out << "string_view: [" << val << "] ";
             },
-            [&](const Twine *val) -> std::ostream & {
+            [&](const BasicTwine *val) -> std::ostream & {
                 return val->dump_impl(out << "twine: [" << &val << "\n") << "\n] ";
             },
             [&](EmptyTwineChild) -> std::ostream & { return out << "empty: []"; }},
         *this);
 }
 
-std::ostream &operator<<(std::ostream &out, const Twine::TwineChild &rhs);
+template <class CharT, class Traits>
+std::ostream &operator<<(std::ostream &out,
+                         const typename BasicTwine<CharT, Traits>::TwineChild &rhs);
 
-inline std::ostream &operator<<(std::ostream &out, const Twine &rhs) {
+template <class CharT, class Traits>
+inline std::ostream &operator<<(std::ostream &out, const BasicTwine<CharT, Traits> &rhs) {
     return out << rhs.lhs << rhs.rhs;
 }
 
-inline std::ostream &operator<<(std::ostream &out, const Twine::TwineChild &rhs) {
+template <class CharT, class Traits>
+inline std::ostream &operator<<(
+    std::ostream &out, const typename BasicTwine<CharT, Traits>::TwineChild &rhs) {
     auto functor = [&](auto &arg) -> std::ostream & {
         using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, Twine::EmptyTwineChild>)
+        if constexpr (std::is_same_v<T,
+                                     typename BasicTwine<CharT, Traits>::EmptyTwineChild>)
             return out;
-        else if constexpr (std::is_same_v<T, const Twine *>)
+        else if constexpr (std::is_same_v<T, const BasicTwine<CharT, Traits> *>)
             return out << *arg;
         else
             return out << arg;
@@ -116,5 +130,8 @@ inline std::ostream &operator<<(std::ostream &out, const Twine::TwineChild &rhs)
 
     return std::visit(functor, rhs);
 }
+
+using Twine = BasicTwine<char>;
+using WTwine = BasicTwine<wchar_t>;
 
 }  // namespace HomeworkTwine
