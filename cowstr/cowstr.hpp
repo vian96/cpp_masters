@@ -4,16 +4,12 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdlib>
-#include <iostream>
 #include <string>
 
 namespace HomeworkCOW {
 
-// template <typename CharT>
-struct CowStr {
-    using CharT = char;
-    using Traits = std::char_traits<CharT>;
-
+template <typename CharT, typename Traits = std::char_traits<CharT>>
+struct BasicCowStr {
     struct SharedStr {
         // shared_ptr-like structure. holds pointer to the buffer itself
         // before it, the ref_counter is stored
@@ -22,17 +18,18 @@ struct CowStr {
         inline static const int DATA_OFFSET = sizeof(RefCT);
 
         // TODO: how to dealloc?
-        inline static CharT *empty_buf = ::new char[sizeof(RefCT) + 1] + DATA_OFFSET;
+        inline static CharT *empty_buf =
+            (CharT *)(::new char[sizeof(RefCT) + sizeof(CharT)] + DATA_OFFSET);
 
         CharT *buf;
 
-        RefCT &ptr_to_refc() { return *(std::atomic<int> *)(buf - DATA_OFFSET); }
-
-        bool unique() { return !ptr_to_refc(); }
+        RefCT &ptr_to_refc() { return *(std::atomic<int> *)((char*)buf - DATA_OFFSET); }
 
         const RefCT &ptr_to_refc() const {
-            return *(std::atomic<int> *)(buf - DATA_OFFSET);
+            return *(std::atomic<int> *)((char*)buf - DATA_OFFSET);
         }
+
+        bool unique() { return !ptr_to_refc(); }
 
         SharedStr() {
             buf = empty_buf;
@@ -47,8 +44,7 @@ struct CowStr {
             }
             // +1 to account for \0 at the end
             auto tot_size = DATA_OFFSET + sizeof(CharT) * (n + 1);
-            buf = ::new char[tot_size];
-            buf += DATA_OFFSET;
+            buf = (CharT *)(::new char[tot_size] + DATA_OFFSET);
         }
 
         void free_buf() {
@@ -102,9 +98,9 @@ struct CowStr {
     }
 
    public:
-    CowStr() : data(sso.small_str), size(0) {}
+    BasicCowStr() : data(sso.small_str), size(0) {}
 
-    CowStr(const CharT *s) {
+    BasicCowStr(const CharT *s) {
         size = Traits::length(s);
         if (size < SSO_SIZE) {
             data = sso.small_str;
@@ -117,12 +113,12 @@ struct CowStr {
         Traits::copy(shared().buf, s, size);
     }
 
-    ~CowStr() {
+    ~BasicCowStr() {
         if (is_sso()) return;
         shared().~SharedStr();
     }
 
-    CowStr(const CowStr &other) : size(other.size) {
+    BasicCowStr(const BasicCowStr &other) : size(other.size) {
         if (other.is_sso()) {
             data = sso.small_str;
             Traits::copy(data, other.sso.small_str, size);
@@ -131,7 +127,7 @@ struct CowStr {
         sso.capacity = other.sso.capacity;
         new (&data) SharedStr(other.shared());
     }
-    CowStr(const CowStr &&other) noexcept : size(other.size) {
+    BasicCowStr(const BasicCowStr &&other) noexcept : size(other.size) {
         if (other.is_sso()) {
             data = sso.small_str;
             Traits::copy(data, other.sso.small_str, size);
@@ -141,7 +137,7 @@ struct CowStr {
         new (&data) SharedStr(std::move(other.shared()));
     }
 
-    CowStr &operator=(const CowStr &other) {
+    BasicCowStr &operator=(const BasicCowStr &other) {
         if (this == &other) return *this;
         if (!is_sso()) shared().~SharedStr();
 
@@ -156,7 +152,7 @@ struct CowStr {
         return *this;
     }
 
-    CowStr &operator=(CowStr &&other) {
+    BasicCowStr &operator=(BasicCowStr &&other) {
         if (this == &other) return *this;
         if (!is_sso()) shared().~SharedStr();
 
@@ -188,7 +184,7 @@ struct CowStr {
         return data[pos];
     }
 
-    const char *c_str() const { return data; }
+    const CharT *c_str() const { return data; }
 
     void push_back(CharT ch) {
         size_t cap = is_sso() ? SSO_SIZE : sso.capacity;
@@ -207,5 +203,8 @@ struct CowStr {
         size += count;
     }
 };
+
+using CowStr = BasicCowStr<char>;
+using WCowStr = BasicCowStr<wchar_t>;
 
 }  // namespace HomeworkCOW
