@@ -2,6 +2,7 @@
 #include <iostream>
 #include <ostream>
 #include <string>
+#include <string_view>
 
 #include "twine.hpp"
 
@@ -26,7 +27,11 @@ void tests() {
 
     assert(((Twine("xa", "bob") + " " + "bib" + "ob").str() == "xabob bibob"));
 
-    assert(WTwine(L"Wide", L" wstr").str() == std::wstring(L"Wide wstr"));
+    assert(WTwine(L"Wide", L" wstr").str() == L"Wide wstr");
+
+    std::string_view a = "hi!", b = "hello!";
+    assert(Twine(a, b).str() == "hi!hello!");
+    assert((Twine(a, b) + "STR").str() == "hi!hello!STR");
 }
 
 int main() {
