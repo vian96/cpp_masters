@@ -16,4 +16,10 @@ int main() {
     std::cout << "copied" << '\n';
     assert(longstr == y.c_str());
     assert(longstr == x.c_str());
+    HomeworkCOW::CowStr z = std::move(x);
+    assert(longstr == z.c_str());
+    z.append("another");
+    std::string appended = longstr + "another";
+    assert(appended == z.c_str());
+    assert(longstr == y.c_str());
 }

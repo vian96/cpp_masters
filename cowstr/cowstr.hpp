@@ -128,7 +128,9 @@ struct CowStr {
             return;
         }
         sso.capacity = other.sso.capacity;
-        shared() = other.shared();
+        std::cout << "heer\n";
+        new(&data) SharedStr(other.shared());
+        std::cout << "copp\n";
     }
     CowStr(const CowStr &&other) noexcept : size(other.size) {
         if (other.is_sso()) {
@@ -137,7 +139,7 @@ struct CowStr {
             return;
         }
         sso.capacity = other.sso.capacity;
-        shared() = std::move(other.shared());
+        new(&data) SharedStr(std::move(other.shared()));
     }
 
     CowStr &operator=(const CowStr &other) {
