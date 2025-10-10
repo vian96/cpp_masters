@@ -1,5 +1,5 @@
 CC = clang++
-INCLUDE = #-I..
+INCLUDE = -I../common/
 CFLAGS = -std=c++23 -Wall -Wextra -Wno-multichar $(INCLUDE)
 BUILDDIR = build
 SRCDIR = ..
