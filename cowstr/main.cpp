@@ -33,7 +33,6 @@ void tests() {
 
     HomeworkCOW::WCowStr w{L"wide str"};
     std::wstring wst{L"wide str"};
-    // std::cout << w.c_str();
     assert(wst == w.c_str());
 }
 

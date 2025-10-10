@@ -4,6 +4,8 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdlib>
+#include <iostream>
+#include <memory>
 #include <string>
 
 namespace HomeworkCOW {
@@ -17,28 +19,29 @@ struct BasicCowStr {
         using RefCT = std::atomic<int>;
         inline static const int DATA_OFFSET = sizeof(RefCT);
 
-        // TODO: how to dealloc?
-        inline static CharT *empty_buf =
-            (CharT *)(::new char[sizeof(RefCT) + sizeof(CharT)]() + DATA_OFFSET);
+        inline static const std::unique_ptr<char[]> empty_buf_ =
+            std::make_unique<char[]>(sizeof(RefCT) + sizeof(CharT));
+
+        static CharT *empty_buf() { return (CharT *)(empty_buf_.get() + DATA_OFFSET); }
 
         CharT *buf;
 
-        RefCT &ptr_to_refc() { return *(std::atomic<int> *)((char*)buf - DATA_OFFSET); }
+        RefCT &ptr_to_refc() { return *(std::atomic<int> *)((char *)buf - DATA_OFFSET); }
 
         const RefCT &ptr_to_refc() const {
-            return *(std::atomic<int> *)((char*)buf - DATA_OFFSET);
+            return *(std::atomic<int> *)((char *)buf - DATA_OFFSET);
         }
 
         bool unique() { return !ptr_to_refc(); }
 
         SharedStr() {
-            buf = empty_buf;
+            buf = empty_buf();
             ptr_to_refc()++;
         }
 
         explicit SharedStr(size_t n = 0) {
             if (!n) {
-                buf = empty_buf;
+                buf = empty_buf();
                 ptr_to_refc()++;
                 return;
             }
@@ -53,13 +56,16 @@ struct BasicCowStr {
                 refc--;
                 return;
             }
-            delete (char *)&refc;
+            delete[] (char *)&refc;
         }
 
         ~SharedStr() { free_buf(); }
 
         SharedStr(const SharedStr &other) : buf(other.buf) { ptr_to_refc()++; }
-        SharedStr(SharedStr &&other) noexcept : buf(other.buf) { other.buf = empty_buf; }
+        SharedStr(SharedStr &&other) noexcept : buf(other.buf) {
+            other.buf = empty_buf();
+            other.ptr_to_refc()++;
+        }
         SharedStr &operator=(const SharedStr &other) {
             if (this == &other) return *this;
             free_buf();
@@ -83,8 +89,8 @@ struct BasicCowStr {
 
     size_t size = 0;
     union {
-        size_t capacity = 0;
-        CharT small_str[SSO_SIZE];
+        size_t capacity;
+        CharT small_str[SSO_SIZE] = {};
     } sso;
     // using SSO may harm asm code as more checks are required
     // However, all write operations still require atomic checks so doing a few more
@@ -93,8 +99,8 @@ struct BasicCowStr {
     // since we have size and data inside struct itself
 
     bool is_sso() const {
-        return (char *)data < (char *)this + sizeof(*this) and
-               (char *) data > (char *)this;
+        return (char *)data <= (char *)this + sizeof(*this) and
+               (char *) data >= (char *)this;
     }
 
    public:
@@ -172,7 +178,7 @@ struct BasicCowStr {
         Traits::copy(other.buf, data, size);
         sso.capacity = n;
         if (!is_sso())
-            shared() = other;
+            shared() = std::move(other);
         else
             new (&data) SharedStr(std::move(other));
     }
