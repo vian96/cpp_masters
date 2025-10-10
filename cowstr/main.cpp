@@ -1,19 +1,15 @@
 #include <cassert>
-#include <iostream>
 #include <string>
+
 #include "cowstr.hpp"
 
-int main() {
+void tests() {
     HomeworkCOW::CowStr x{"aboba"};
-    std::cout << x.is_sso() <<"inited\n";
     assert(std::string("aboba") == x.c_str());
-    std::cout << x.c_str() << '\n';
     x.append("very long word or sentence idk what");
     std::string longstr{"abobavery long word or sentence idk what"};
     assert(longstr == x.c_str());
-    std::cout << x.c_str() << '\n';
     HomeworkCOW::CowStr y = x;
-    std::cout << "copied" << '\n';
     assert(longstr == y.c_str());
     assert(longstr == x.c_str());
     HomeworkCOW::CowStr z = std::move(x);
@@ -22,4 +18,13 @@ int main() {
     std::string appended = longstr + "another";
     assert(appended == z.c_str());
     assert(longstr == y.c_str());
+
+    HomeworkCOW::CowStr t1{"very very very very long test for write"};
+    HomeworkCOW::CowStr t2 = t1;
+    std::string old = t1.c_str();
+    t1[5] = 'i';
+    assert(t1[5] == 'i');
+    assert(old == t2.c_str());
 }
+
+int main() { tests(); }

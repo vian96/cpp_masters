@@ -28,6 +28,8 @@ struct CowStr {
 
         RefCT &ptr_to_refc() { return *(std::atomic<int> *)(buf - DATA_OFFSET); }
 
+        bool unique() { return !ptr_to_refc(); }
+
         const RefCT &ptr_to_refc() const {
             return *(std::atomic<int> *)(buf - DATA_OFFSET);
         }
@@ -104,7 +106,6 @@ struct CowStr {
 
     CowStr(const CharT *s) {
         size = Traits::length(s);
-        std::cout << size << '\n';
         if (size < SSO_SIZE) {
             data = sso.small_str;
             Traits::copy(sso.small_str, s, size);
@@ -128,9 +129,7 @@ struct CowStr {
             return;
         }
         sso.capacity = other.sso.capacity;
-        std::cout << "heer\n";
-        new(&data) SharedStr(other.shared());
-        std::cout << "copp\n";
+        new (&data) SharedStr(other.shared());
     }
     CowStr(const CowStr &&other) noexcept : size(other.size) {
         if (other.is_sso()) {
@@ -139,7 +138,7 @@ struct CowStr {
             return;
         }
         sso.capacity = other.sso.capacity;
-        new(&data) SharedStr(std::move(other.shared()));
+        new (&data) SharedStr(std::move(other.shared()));
     }
 
     CowStr &operator=(const CowStr &other) {
@@ -173,18 +172,20 @@ struct CowStr {
     }
 
     void realloc_buf(size_t n) {
-        std::cout << "realloc" << n << '\n';
         SharedStr other{n};
-        std::cout << "other" << n << '\n';
         Traits::copy(other.buf, data, size);
-        std::cout << "copy" << n << '\n';
         sso.capacity = n;
         if (!is_sso())
             shared() = other;
         else
             new (&data) SharedStr(std::move(other));
-        std::cout << "alloced" << n << '\n';
-        std::cout << "from ccopy " << data << ' '<< size << sso.capacity << '\n';
+    }
+
+    const CharT &operator[](size_t pos) const { return data[pos]; }
+
+    CharT &operator[](size_t pos) {
+        if (!is_sso() and !shared().unique()) realloc_buf(sso.capacity);
+        return data[pos];
     }
 
     const char *c_str() const { return data; }
@@ -200,14 +201,9 @@ struct CowStr {
 
     void append(const CharT *s, size_t count) {
         size_t cap = is_sso() ? SSO_SIZE : sso.capacity;
-        std::cout << cap << is_sso() << '\n';
-                std::cout << "HERE " << data << ' '<< size << sso.capacity << '\n';
         if (size + count >= cap) realloc_buf(std::max(cap * 2, size + count));
 
-        std::cout << "to ccopy " << data << ' '<< size << sso.capacity << '\n';
-
         Traits::copy(&data[size], s, count);
-        std::cout << "act ccopy" << '\n';
         size += count;
     }
 };
