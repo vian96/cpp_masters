@@ -61,8 +61,7 @@ struct BasicTwine {
     TwineChild rhs{EmptyTwineChild()};
 
     template <typename LT = EmptyTwineChild, typename RT = EmptyTwineChild>
-    explicit BasicTwine(const LT &lhs_ = EmptyTwineChild(),
-                        const RT &rhs_ = EmptyTwineChild())
+    BasicTwine(const LT &lhs_ = EmptyTwineChild(), const RT &rhs_ = EmptyTwineChild())
         : lhs(lhs_), rhs(rhs_) {}
 
     std::ostream &dump_impl(std::ostream &out) const {
