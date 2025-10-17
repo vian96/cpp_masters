@@ -8,9 +8,6 @@
 template <typename T>
 concept MultiplyableBySelf = requires(T t) { t *= t; };
 
-template <typename T>
-concept HasEye = requires(T t) { T::eye(); };
-
 template <MultiplyableBySelf T>
 T nth_power(T x, T acc, unsigned n) {
     while (n > 0) {
@@ -54,12 +51,16 @@ T nth_power(T x, unsigned n) {
     return nth_power<T>(x, acc, n);
 }
 
-// for matrix-like types with static one-like "factories"
+// NOT sure if it is a good idea to use default template argument:
+// probably may lead to unexpected behaviour when calling function
+// if such call would be ambigous (eye of an animal)
+// which would make it a BAD overload set
+// so probably it's better to remove it, but removing is easier than writing so i left it
 // non-copyable types are weird and the code inside is not for them
-template <typename T>
-    requires(MultiplyableBySelf<T> && std::copyable<T> && HasEye<T>)
+template <typename T, auto NeutralElementFactory = T::eye>
+    requires(MultiplyableBySelf<T> && std::copyable<T>)
 T nth_power(T x, unsigned n) {
-    T acc = T::eye();
+    T acc = NeutralElementFactory();
     if (x == acc || n == 1u) return x;
     return nth_power<T>(x, acc, n);
 }
@@ -90,7 +91,7 @@ struct EyebleMatrix2x2 : Matrix2x2 {
     static EyebleMatrix2x2 eye() { return {1, 0, 0, 1}; }
 };
 
-// explicit specialization for other types
+// example of explicit specialization for other types
 Matrix2x2 nth_power(Matrix2x2 x, unsigned n) {
     Matrix2x2 eye{1, 0, 0, 1};
     if (x == eye || n == 1u) return x;
@@ -103,6 +104,8 @@ TEST(nthpower_test_case, testWillPass) {
     EXPECT_EQ(nth_power(2.0, 11), (1 << 11));
     Matrix2x2 m{1, 0, 0, 1};
     EXPECT_EQ(nth_power(m, 5), m);
+    auto res = nth_power<Matrix2x2, []() { return Matrix2x2{1, 0, 0, 1}; }>(m, 5);
+    EXPECT_EQ(res, m);
     std::complex<float> c(1, 1);
     EXPECT_EQ(nth_power(c, 4), std::complex<float>(-4));
     EyebleMatrix2x2 m2{1, 0, 0, 1};
