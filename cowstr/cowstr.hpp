@@ -98,25 +98,24 @@ struct BasicCowStr {
     // And all non-const operations do not require it (except for capacity())
     // since we have size and data inside struct itself
 
-    bool is_sso() const {
-        return (char *)data <= (char *)this + sizeof(*this) and
-               (char *) data >= (char *)this;
-    }
+    bool is_sso() const { return data == sso.small_str; }
 
    public:
     BasicCowStr() : data(sso.small_str), size(0) {}
 
     BasicCowStr(const CharT *s) {
-        size = Traits::length(s);
-        if (size < SSO_SIZE) {
+        int len = Traits::length(s);
+        if (len < SSO_SIZE) {
             data = sso.small_str;
-            Traits::copy(sso.small_str, s, size);
+            Traits::copy(sso.small_str, s, len);
+            size = len;
             return;
         }
 
-        sso.capacity = size;
-        new (&data) SharedStr(size);
-        Traits::copy(shared().buf, s, size);
+        new (&data) SharedStr(len);
+        sso.capacity = len;
+        size = len;
+        Traits::copy(shared().buf, s, len);
     }
 
     ~BasicCowStr() {
@@ -124,7 +123,7 @@ struct BasicCowStr {
         shared().~SharedStr();
     }
 
-    BasicCowStr(const BasicCowStr &other) : size(other.size) {
+    BasicCowStr(const BasicCowStr &other) noexcept : size(other.size) {
         if (other.is_sso()) {
             data = sso.small_str;
             Traits::copy(data, other.sso.small_str, size);
@@ -143,7 +142,7 @@ struct BasicCowStr {
         new (&data) SharedStr(std::move(other.shared()));
     }
 
-    BasicCowStr &operator=(const BasicCowStr &other) {
+    BasicCowStr &operator=(const BasicCowStr &other) noexcept {
         if (this == &other) return *this;
         if (!is_sso()) shared().~SharedStr();
 
@@ -158,7 +157,7 @@ struct BasicCowStr {
         return *this;
     }
 
-    BasicCowStr &operator=(BasicCowStr &&other) {
+    BasicCowStr &operator=(BasicCowStr &&other) noexcept {
         if (this == &other) return *this;
         if (!is_sso()) shared().~SharedStr();
 
