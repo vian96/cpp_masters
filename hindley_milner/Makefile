@@ -1,3 +1,4 @@
+# TODO: delete this file, cmake is used now
 CC = clang++
 INCLUDE = -I../common/
 CFLAGS = -std=c++23 -Wall -Wextra -Wno-multichar $(INCLUDE) -MMD -MP
