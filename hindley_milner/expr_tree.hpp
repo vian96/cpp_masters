@@ -22,6 +22,8 @@ struct Node {
     explicit Node(NodeType nodeType, std::string identifier = "",
                   std::vector<Node> child_nodes = {})
         : type(nodeType), id(std::move(identifier)), children(std::move(child_nodes)) {}
+
+    void print_tree(int indent = 0) const;
 };
 
 class ExpressionTree {

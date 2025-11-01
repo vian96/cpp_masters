@@ -1,5 +1,7 @@
 #include "expr_tree.hpp"
 
+#include <iostream>
+
 Node create_define(std::string name, Node expression) {
     return Node(NodeType::DEFINE, std::move(name), {std::move(expression)});
 }
@@ -31,4 +33,33 @@ Node create_identifier(std::string name) {
 
 Node create_function_call(Node function, Node argument) {
     return Node(NodeType::FUNCTION_CALL, "", {std::move(function), std::move(argument)});
+}
+
+void Node::print_tree(int indent) const {
+    std::cout << std::string(indent, ' ');
+    switch (type) {
+        case NodeType::DEFINE:
+            std::cout << "DEFINE: " << id << std::endl;
+            break;
+        case NodeType::LAMBDA:
+            std::cout << "LAMBDA, arg: " << id << std::endl;
+            break;
+        case NodeType::CASE:
+            std::cout << "CASE, matching on: " << id << std::endl;
+            break;
+        case NodeType::CONS:
+            std::cout << "CONS" << std::endl;
+            break;
+        case NodeType::NIL:
+            std::cout << "NIL" << std::endl;
+            break;
+        case NodeType::IDENTIFIER:
+            std::cout << "IDENTIFIER: " << id << std::endl;
+            break;
+        case NodeType::FUNCTION_CALL:
+            std::cout << "FUNCTION_CALL" << std::endl;
+            break;
+    }
+
+    for (const auto& child : children) child.print_tree(indent + 2);
 }
