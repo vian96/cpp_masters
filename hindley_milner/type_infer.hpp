@@ -15,6 +15,7 @@ class TypeInferSolver {
     // INFO: pointed object lives exactly as long as Solver
     Type* infer_type(const ExpressionTree& tree);
 
+   // WARNING: UB if there are more than 26 type template params
     std::string infer_type_string(const ExpressionTree& tree);
 
     std::string type_to_string(Type* t);
@@ -50,12 +51,12 @@ class TypeInferSolver {
     Type* get_expression_type(const Node& node, VarTypes& var_types);
 
     void solve_equation(Type* t1, Type* t2);
-    void handle_simple_equation(Type *var, Type* other);
+    void handle_simple_equation(Type* var, Type* other);
 
     std::string type_to_string_impl(Type* t, std::map<int, std::string>& names,
                                     bool inside_several_args_func = false);
 
-    void assert_recursive_eq(Type *var, Type* t);
+    void assert_recursive_eq(Type* var, Type* t);
 };
 
 #endif  // TYPE_INFER_H

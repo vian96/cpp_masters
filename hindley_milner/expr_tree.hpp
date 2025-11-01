@@ -12,17 +12,15 @@ enum class NodeType { DEFINE, LAMBDA, CASE, CONS, NIL, IDENTIFIER, FUNCTION_CALL
 // but it does not really matter since half of nodes contain id and
 // it wouldn't save much memory. also acces to children is indirect
 // with both vector and hardcoded pointers so it does not matter either.
-// so i chose simplicity over little performance win
+// so i chose simplicity over little performance win.
+// i will write proper nodes with inheritance in ParaCL anyway :)
 struct Node {
     NodeType type;
 
     std::string id;  // for identifiers, functions and lambda args
     std::vector<Node> children;
 
-    explicit Node(NodeType nodeType, std::string identifier = "",
-                  std::vector<Node> child_nodes = {})
-        : type(nodeType), id(std::move(identifier)), children(std::move(child_nodes)) {}
-
+    // TODO: overload for any ostream, not just cin
     void print_tree(int indent = 0) const;
 };
 

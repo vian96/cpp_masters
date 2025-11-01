@@ -45,8 +45,9 @@ Node SExpressionParser::parse_expression(std::string_view& s) {
 
 Node SExpressionParser::handle_brackets(std::string_view& s) {
     // FIXME: everything that does not match define/lambda/case/cons is considered a
-    // function call so case branches are "function calls". need proper node type for that
-    // or make explicit handling?
+    // function call so case branches are "function calls". but it's fixed on call above,
+    // when parsing "case" keyword. need proper node type for that or make explicit
+    // handling?
     std::vector<Node> elements;
     while (true) {
         skip_whitespace(s);
