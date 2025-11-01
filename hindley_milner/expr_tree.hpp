@@ -14,8 +14,7 @@ enum class NodeType { DEFINE, LAMBDA, CASE, CONS, NIL, IDENTIFIER, FUNCTION_CALL
 // with both vector and hardcoded pointers so it does not matter either.
 // so i chose simplicity over little performance win
 struct Node {
-    // TODO: is const needed? it may break assignment but it doesn't really matter
-    const NodeType type;
+    NodeType type;
 
     std::string id;  // for identifiers, functions and lambda args
     std::vector<Node> children;
