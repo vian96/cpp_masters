@@ -1,27 +1,19 @@
 #ifndef TYPE_H
 #define TYPE_H
 
-#include <variant>
 #include <vector>
 
-struct Type;
-
-struct TypeVariable {
-    int id;
-};
-
-enum class ComplexTypeKind {
+enum class TypeKind {
+    VARIABLE,
     LAMBDA,
     LIST,
 };
 
-struct ComplexType {
-    ComplexTypeKind type;
-    std::vector<Type*> children;
-};
-
+// same as exprTree: prefer simplicity over prematurely optimized memory footprint
 struct Type {
-    std::variant<TypeVariable, ComplexType> value;
+    TypeKind kind;
+    int id;
+    std::vector<Type*> children;
 };
 
 #endif  // TYPE_H
