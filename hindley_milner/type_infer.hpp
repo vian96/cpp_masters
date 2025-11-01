@@ -52,7 +52,7 @@ class TypeInferSolver {
     void solve_equation(Type* t1, Type* t2);
     void handle_simple_equation(TypeVariable var, Type* other);
 
-    std::string type_to_string_impl(Type* t, std::map<int, std::string>& names);
+    std::string type_to_string_impl(Type* t, std::map<int, std::string>& names, bool inside_several_args_func=false);
 
     void assert_recursive_eq(TypeVariable var, Type* t);
 };

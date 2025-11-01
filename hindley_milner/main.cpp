@@ -78,22 +78,45 @@ int main() {
         std::cerr << "Type inference failed: " << e.what() << std::endl;
     }
 
-    std::cout << TypeInferSolver().infer_type_string(
-        SExpressionParser().parse("(define f (lambda (xs) (lambda (g)"
-                                  "(case xs (nil nil)"
-                                  "((cons x xs1) (cons (g x) ((f xs1) g)))))))")) << '\n';
+    std::cout << TypeInferSolver().infer_type_string(SExpressionParser().parse(
+                     "(define f (lambda (xs) (lambda (g)"
+                     "(case xs (nil nil)"
+                     "((cons x xs1) (cons (g x) ((f xs1) g)))))))"))
+              << '\n';
+
+    std::cout << TypeInferSolver().infer_type_string(SExpressionParser().parse(
+                     "(define f (lambda xs (case xs (nil nil))))"))
+              << '\n';
 
     std::cout << TypeInferSolver().infer_type_string(
-        SExpressionParser().parse("(define f (lambda xs (case xs (nil nil))))")) << '\n';
+                     SExpressionParser().parse("(define f (lambda g (lambda x (g x))))"))
+              << '\n';
 
     std::cout << TypeInferSolver().infer_type_string(
-        SExpressionParser().parse("(define f (lambda g (lambda x (g x))))")) << '\n';
+                     SExpressionParser().parse("(define f (lambda x (lambda g (g x))))"))
+              << '\n';
+
+    std::cout << TypeInferSolver().infer_type_string(SExpressionParser().parse(
+                     "(define f (lambda g (lambda x (case x (nil (g x))))))"))
+              << '\n';
 
     std::cout << TypeInferSolver().infer_type_string(
-        SExpressionParser().parse("(define f (lambda x (lambda g (g x))))")) << '\n';
+                     SExpressionParser().parse("(define f (lambda (g) (lambda (xs)"
+                                               "(case xs (nil (g nil))"
+                                               "((cons x xs1) (g (cons x xs1)))))))"))
+              << '\n';
 
-    std::cout << TypeInferSolver().infer_type_string(
-        SExpressionParser().parse("(define f (lambda g (lambda x (case x (nil (g x))))))")) << '\n';
+    std::cout << TypeInferSolver().infer_type_string(SExpressionParser().parse(
+                     "(define f (lambda g (lambda x (case x (nil nil)))))"))
+              << '\n';
+
+    std::cout << TypeInferSolver().infer_type_string(SExpressionParser().parse(
+                     "(define f (lambda g (lambda x (lambda y (y (g x))))))"))
+              << '\n';
+
+    std::cout << TypeInferSolver().infer_type_string(SExpressionParser().parse(
+                     "(define f (lambda x (x)))"))
+              << '\n';
 
     return 0;
 }

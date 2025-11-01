@@ -98,8 +98,8 @@ Type* TypeInferSolver::get_expression_type(const Node& node, VarTypes& var_types
                     throw std::runtime_error("unsupported node type for case" +
                                              std::to_string(int(pattern_node.type)));
                 }
-                // technically case on lambda can also exist
-                // but it is not well defined in task how it'd work
+                // technically case on lambda can also exist or on result of calling
+                // lambda but it is not well defined in task how it'd work
 
                 equations.push_back({matched_expr_type, pattern_type});
                 Type* current_result_type = get_expression_type(result_node, case_types);
@@ -177,25 +177,32 @@ void TypeInferSolver::handle_simple_equation(TypeVariable var, Type* other) {
 
 std::string TypeInferSolver::type_to_string(Type* t) {
     std::map<int, std::string> names;
-    std::string inner_str = type_to_string_impl(t, names);
+    std::string inner_str = type_to_string_impl(t, names, true);
     std::string args_def = "(forall (";
     for (size_t i = 0; i < names.size(); i++) {
         args_def += 'a' + i;
         if (i + 1 != names.size()) args_def += ' ';
     }
-    return args_def + ") " + inner_str + ')';
+    return args_def + ") (" + inner_str + "))";
 }
 
 std::string TypeInferSolver::type_to_string_impl(Type* t,
-                                                 std::map<int, std::string>& names) {
+                                                 std::map<int, std::string>& names,
+                                                 bool inside_several_args_func) {
     t = get_solution(t);
     if (auto* var = std::get_if<TypeVariable>(&t->value)) {
         if (!names.count(var->id)) names[var->id] = 'a' + names.size();
         return names[var->id];
     } else if (auto* ctor = std::get_if<ComplexType>(&t->value)) {
-        if (ctor->type == ComplexTypeKind::LAMBDA)
-            return "(func " + type_to_string_impl(ctor->children[0], names) + " " +
-                   type_to_string_impl(ctor->children[1], names) + ")";
+        if (ctor->type == ComplexTypeKind::LAMBDA) {
+            std::string result = inside_several_args_func ? "" : "(func ";
+            // first child is argument, need full name
+            result += type_to_string_impl(ctor->children[0], names, false) + ' ';
+            // second child may be another lambda => multuple arg func
+            result += type_to_string_impl(ctor->children[1], names, true);
+            if (!inside_several_args_func) result += ')';
+            return result;
+        }
 
         return "(list " + type_to_string_impl(ctor->children[0], names) + ')';
     }
