@@ -7,12 +7,11 @@
 #include "type.hpp"
 
 Type* TypeInferSolver::infer_type(const ExpressionTree& tree) {
-    VarTypes var_types;
     Type* f_type = new_type();
     var_types[tree.get_root().id] = f_type;
 
     // define itself does nothing, need to get type of its definition
-    Type* body_type = get_expression_type(tree.get_root().children[0], var_types);
+    Type* body_type = get_expression_type(tree.get_root().children[0]);
     equations.push_back({f_type, body_type});
 
     for (const auto& eq : equations) solve_equation(eq.first, eq.second);
@@ -42,7 +41,7 @@ Type* TypeInferSolver::new_lambda_type(Type* from, Type* to) {
     return new_constructor(TypeKind::LAMBDA, {from, to});
 }
 
-Type* TypeInferSolver::get_expression_type(const Node& node, VarTypes& var_types) {
+Type* TypeInferSolver::get_expression_type(const Node& node) {
     switch (node.type) {
         case NodeType::IDENTIFIER: {
             if (var_types.count(node.id)) return var_types.at(node.id);
@@ -54,22 +53,23 @@ Type* TypeInferSolver::get_expression_type(const Node& node, VarTypes& var_types
         }
         case NodeType::LAMBDA: {
             Type* arg_type = new_type();
-            // see docstring on get_expression_type to see why copy is needed
-            VarTypes new_vars = var_types;
-            new_vars[node.id] = arg_type;
-            Type* body_type = get_expression_type(node.children[0], new_vars);
+            var_types[node.id] = arg_type;
+            Type* body_type = get_expression_type(node.children[0]);
+            // remove scope-introduced names
+            var_types.erase(node.id);
+
             return new_lambda_type(arg_type, body_type);
         }
         case NodeType::FUNCTION_CALL: {
-            Type* func_type = get_expression_type(node.children[0], var_types);
-            Type* arg_type = get_expression_type(node.children[1], var_types);
+            Type* func_type = get_expression_type(node.children[0]);
+            Type* arg_type = get_expression_type(node.children[1]);
             Type* result_type = new_type();
             equations.push_back({func_type, new_lambda_type(arg_type, result_type)});
             return result_type;
         }
         case NodeType::CONS: {
-            Type* head_type = get_expression_type(node.children[0], var_types);
-            Type* tail_type = get_expression_type(node.children[1], var_types);
+            Type* head_type = get_expression_type(node.children[0]);
+            Type* tail_type = get_expression_type(node.children[1]);
             equations.push_back({tail_type, new_list_type(head_type)});
             return tail_type;
         }
@@ -81,27 +81,31 @@ Type* TypeInferSolver::get_expression_type(const Node& node, VarTypes& var_types
                 const auto& pattern_node = node.children[i];
                 const auto& result_node = node.children[i + 1];
 
-                VarTypes case_types = var_types;
                 Type* pattern_type = nullptr;
+                Type* current_result_type = nullptr;
 
                 if (pattern_node.type == NodeType::NIL) {
                     pattern_type = new_list_type(new_type());
+                    equations.push_back({matched_expr_type, pattern_type});
+                    current_result_type = get_expression_type(result_node);
                 } else if (pattern_node.type == NodeType::CONS) {
                     Type* head_var = new_type();
                     Type* tail_var = new_type();
-                    case_types[pattern_node.children[0].id] = head_var;
-                    case_types[pattern_node.children[1].id] = tail_var;
+                    const auto& head_id = pattern_node.children[0].id;
+                    const auto& tail_id = pattern_node.children[1].id;
+                    var_types[head_id] = head_var;
+                    var_types[tail_id] = tail_var;
                     pattern_type = new_list_type(head_var);
                     equations.push_back({tail_var, pattern_type});
+                    equations.push_back({matched_expr_type, pattern_type});
+                    current_result_type = get_expression_type(result_node);
+                    var_types.erase(head_id);
+                    var_types.erase(tail_id);
                 } else {
-                    throw std::runtime_error("unsupported node type for case" +
+                    throw std::runtime_error("unsupported node type for case " +
                                              std::to_string(int(pattern_node.type)));
                 }
-                // technically case on lambda can also exist or on result of calling
-                // lambda but it is not well defined in task how it'd work
 
-                equations.push_back({matched_expr_type, pattern_type});
-                Type* current_result_type = get_expression_type(result_node, case_types);
                 equations.push_back({result_type, current_result_type});
             }
             return result_type;
@@ -144,7 +148,7 @@ void TypeInferSolver::solve_equation(Type* t1, Type* t2) {
     }
 }
 
-void TypeInferSolver::assert_recursive_eq(Type *var, Type* t) {
+void TypeInferSolver::assert_recursive_eq(Type* var, Type* t) {
     // webpages say it's necessary do such "occurs check".
     // otherwise, it seems infinite recursion would occur and
     // we don't want such behaviour of our program so i put it
@@ -156,7 +160,7 @@ void TypeInferSolver::assert_recursive_eq(Type *var, Type* t) {
         for (Type* child : t->children) assert_recursive_eq(var, child);
 }
 
-void TypeInferSolver::handle_simple_equation(Type *var, Type* other) {
+void TypeInferSolver::handle_simple_equation(Type* var, Type* other) {
     // trivial equation
     if (other->kind == TypeKind::VARIABLE && var->id == other->id) return;
 

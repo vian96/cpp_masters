@@ -15,12 +15,10 @@ class TypeInferSolver {
     // INFO: pointed object lives exactly as long as Solver
     Type* infer_type(const ExpressionTree& tree);
 
-   // WARNING: UB if there are more than 26 type template params
+    // WARNING: UB if there are more than 26 type template params
     std::string infer_type_string(const ExpressionTree& tree);
 
     std::string type_to_string(Type* t);
-
-    using VarTypes = std::unordered_map<std::string, Type*>;
 
     using Equation = std::pair<Type*, Type*>;
 
@@ -28,6 +26,8 @@ class TypeInferSolver {
     Type* get_solution(Type* t);
 
     int next_type_variable_id = 0;
+
+    std::unordered_map<std::string, Type*> var_types;
 
     // i want all Type objects to live as long as Solver lives
     // so i don't want smart ptrs and use arena method instead.
@@ -43,12 +43,7 @@ class TypeInferSolver {
     Type* new_list_type(Type* type);
     Type* new_lambda_type(Type* from, Type* to);
 
-    // also fills equations, but does not solve them.
-    // VarTypes is passed as new names are introduced at lambdas and cases
-    // so for each "scope" i want its own type map.
-    // copying is not as efficient as adding/removing to map
-    // but it was easier and i thought it does not matter that much
-    Type* get_expression_type(const Node& node, VarTypes& var_types);
+    Type* get_expression_type(const Node& node);
 
     void solve_equation(Type* t1, Type* t2);
     void handle_simple_equation(Type* var, Type* other);
