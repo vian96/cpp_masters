@@ -36,9 +36,9 @@ TEST(TypeInference, AllTests) {
 
     };
 
+    TypeInferSolver solver;
+    SExpressionParser parser;
     for (const auto& [input, expected] : test_cases) {
-        TypeInferSolver solver;
-        SExpressionParser parser;
         SCOPED_TRACE("Input: " + std::string(input));
         std::string actual = solver.infer_type_string(parser.parse(input));
         EXPECT_EQ(actual, expected);
