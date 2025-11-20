@@ -140,12 +140,6 @@ struct GetIf {
 
 template <template <typename...> typename Tuple, template <typename> typename Pred,
           typename... Args>
-struct GetIf<Tuple<Args...>, Pred> {
-    static_assert(false, "non-sizeofable objects are not allowed");
-};
-
-template <template <typename...> typename Tuple, template <typename> typename Pred,
-          typename... Args>
     requires(SizeOfAble<Args> && ...)
 struct GetIf<Tuple<Args...>, Pred> {
     using T = typename CompileSortImpl::GetIfImpl<MyTuple<Args...>,
