@@ -1,15 +1,17 @@
+#pragma once
+
 #include <type_traits>
 
 namespace CompileSort {
 
 template <typename T, std::size_t N>
-struct IsBigger : std::bool_constant<(sizeof(T) >= N)> {};
+struct IsBiggerEq : std::bool_constant<(sizeof(T) >= N)> {};
 
 template <typename T, std::size_t N>
-struct IsLessEq : std::bool_constant<(sizeof(T) < N)> {};
+struct IsLess : std::bool_constant<(sizeof(T) < N)> {};
 
 // for readable message after invalid sorting with templates like vector
-template <template <typename...> class Tmpl, typename... Args>
+template <template <typename...> typename Tmpl, typename... Args>
 concept CanBeInstantiatedWith = requires {
     typename Tmpl<Args...>;
 
@@ -36,11 +38,15 @@ struct MyTuple<Arg, Args...> {
 };
 
 template <>
-struct MyTuple<> {};
+struct MyTuple<> {
+    template <template <typename...> typename T>
+        requires CanBeInstantiatedWith<T>
+    using UnWrap = T<>;
+};
 
-template <class, class>
+template <typename, typename>
 struct Cat;
-template <class... First, class... Second>
+template <typename... First, typename... Second>
 struct Cat<MyTuple<First...>, MyTuple<Second...>> {
     using T = MyTuple<First..., Second...>;
 };
@@ -89,9 +95,9 @@ struct SortImpl {
     using X = typename Tuple::T;
 
     template <typename T>
-    using Less = IsLessEq<T, sizeof(X)>;
+    using Less = IsLess<T, sizeof(X)>;
     template <typename T>
-    using More = IsBigger<T, sizeof(X)>;
+    using More = IsBiggerEq<T, sizeof(X)>;
 
     using Left = typename GetIfImpl<SortedSub, Less>::T;
     using Right = typename GetIfImpl<SortedSub, More>::T;
@@ -111,6 +117,7 @@ concept SizeOfAble = requires() { sizeof(T); };
 
 template <typename Tuple>
 struct Sort {
+    // dangerous but works in modern c++
     static_assert(false, "Non-tuple-like types are not allowed");
 };
 
@@ -125,9 +132,6 @@ struct Sort<Tuple<Args...>> {
     using T =
         typename CompileSortImpl::SortImpl<MyTuple<Args...>>::T::template UnWrap<Tuple>;
 };
-
-template <typename Tuple, template <typename> typename Pred>
-struct GetIf;
 
 template <typename Tuple, template <typename> typename Pred>
 struct GetIf {
