@@ -41,7 +41,7 @@ According to standard ([expr.const]):
 
 So, copy ellision should not be taken into mind. If no copy ellision is performed, `t2.b` would be a dangling reference due to pointing out to a temprorary object that is dead after assignment. As it is a field of a constexpr object, it cannot be returned from a function due to (p.13):
 > A constant expression is either a glvalue core constant expression that refers to an entity that is a permitted result of a constant expression (as defined below), or a prvalue core constant expression whose value satisfies the following constraints:
- - if the value is an object of class type, each non-static data member of reference type refers to an entity that is a permitted result of a constant expression,
+> - if the value is an object of class type, each non-static data member of reference type refers to an entity that is a permitted result of a constant expression,
 
 Where permitted result is defined as:
 > An entity is a permitted result of a constant expression if it is an object with static storage duration that either is not a temporary object or is a temporary object whose value satisfies the above constraints, or if it is a non-immediate function.
